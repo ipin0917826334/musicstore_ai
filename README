@@ -1,2 +1,26 @@
 Model:
 https://drive.google.com/file/d/1wJ6aGZOWnc5mWdrj7eTQl6X1xXBwHoEF/view?usp=sharing
+
+bank_slip_ocr.py ไว้เทรนโมเดล
+สร้างfolder 
+data/test/not_slip
+data/test/slip
+data/train/not_slip
+data/train/slip
+เอาภาพใส่
+ลงpython 3.11
+ลงpip หลักๆ
+tensorflow-cpu
+Flask
+Flask-PyMongo
+keras
+numpy
+Pillow
+pymongo
+pyparsing
+requests
+tensorflow-cpu หรือไม่ได้ก็ tensorflow
+
+run
+python app.py
+เชื่อมngrok http 5000
