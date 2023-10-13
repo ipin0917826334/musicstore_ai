@@ -20,7 +20,8 @@ pymongo
 pyparsing
 requests
 tensorflow-cpu หรือไม่ได้ก็ tensorflow
-
-run
+run train
+python bank_slip_ocr.py
+run server
 python app.py
 เชื่อมngrok http 5000
