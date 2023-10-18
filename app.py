@@ -1,9 +1,10 @@
-from flask import Flask, request, jsonify, send_from_directory
+from flask import Flask, request, jsonify, send_from_directory, Response
 # from flask_mysqldb import MySQL
 from flask_pymongo import PyMongo
 import requests
 from io import BytesIO
 import os
+import json
 import tensorflow as tf
 from pymongo import MongoClient
 
@@ -61,7 +62,11 @@ def predict():
       "size": "giga",
       "hero": {
         "type": "image",
-        "url": "https://us.123rf.com/450wm/johan2011/johan20111205/johan2011120500048/13710726-marca-de-verificaci%C3%B3n-verde-en-el-fondo-blancoo.jpg?ver=6",  # provide a default image url if 'image' key is not found
+       "url": (
+            "https://us.123rf.com/450wm/johan2011/johan20111205/johan2011120500048/13710726-marca-de-verificaci%C3%B3n-verde-en-el-fondo-blancoo.jpg?ver=6"
+            if result == "ตรวจสอบสลิปสําเร็จ."
+            else "https://static.vecteezy.com/system/resources/previews/017/178/222/non_2x/round-cross-mark-symbol-with-transparent-background-free-png.png"
+        ),
         "size": "full",
         "aspectMode": "cover",
         "aspectRatio": "1:1",
@@ -89,8 +94,22 @@ def predict():
         "paddingAll": "sm"
       }
     }
-        return jsonify(flextemplate)
-        # return jsonify({"predict":[result]})
+        line_format = {
+            "type": "flex",
+            "altText": "This is a Flex Message",
+            "contents": flextemplate
+        }
+        data = {
+        "line_payload": [
+            line_format
+        ],
+        "facebook_payload": []
+    }
+    # return jsonify(data)
+        data = json.dumps(data)
+        res = Response(data, mimetype='application/json')
+        res.headers.add("Response-Type", "object")
+        return res
     except Exception as e:
         return jsonify(error=f"An error occurred: {str(e)}"), 500
     
@@ -147,64 +166,277 @@ def predict():
 def search_by_type():
     data_type = request.json.get('type')
     results = list(mongo.db.instruments.find({"type": data_type}))
-    return jsonify(results)
+    carousel_bubbles = []  # This list will hold your bubble dictionaries
+    for result in results:
+        bubble = {
+            "type": "bubble",
+            "size": "giga",
+            "hero": {
+                "type": "image",
+                "url": result.get('image', 'default_image_url'),
+                "size": "full",
+                "aspectMode": "cover",
+                "aspectRatio": "320:213",
+                "action": {
+                    "type": "message",
+                    "label": "action",
+                    "text": result.get('name', 'No name')
+                }
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": result.get('name', 'No name'),
+                        "weight": "regular",
+                        "size": "xxs",
+                        "wrap": True,
+                        "margin": "none",
+                        "contents": []
+                    },
+                    {
+                        "type": "text",
+                        "text": f"{result.get('price', '0')} บาท",
+                        "size": "xxs"
+                    }
+                ],
+                "spacing": "none",
+                "paddingAll": "sm"
+            }
+        }
+        carousel_bubbles.append(bubble)  # Add each bubble dictionary to your list
+
+    # Create the carousel dictionary (moved out of the for loop)
+    carousel = {
+        "type": "carousel",
+        "contents": carousel_bubbles
+    }
+    
+    # Create the flex message dictionary (moved out of the for loop)
+    line_format = {
+        "type": "flex",
+        "altText": "This is a Flex Message",
+        "contents": carousel  # Point to your carousel dictionary
+    } 
+    
+    data = {
+        "line_payload": [line_format],  # Wrap your flex message dictionary in a list
+        "facebook_payload": []
+    }
+    
+    data = json.dumps(data)
+    res = Response(data, mimetype='application/json')
+    res.headers.add("Response-Type", "object")
+    return res
 
 @app.route('/search/band', methods=['POST'])
 def search_by_band():
     band = request.json.get('band')
     results = list(mongo.db.instruments.find({"band": band}))
-    return jsonify(results)
+    carousel_bubbles = []  # This list will hold your bubble dictionaries
+    for result in results:
+        bubble = {
+            "type": "bubble",
+            "size": "giga",
+            "hero": {
+                "type": "image",
+                "url": result.get('image', 'default_image_url'),
+                "size": "full",
+                "aspectMode": "cover",
+                "aspectRatio": "320:213",
+                "action": {
+                    "type": "message",
+                    "label": "action",
+                    "text": result.get('name', 'No name')
+                }
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": result.get('name', 'No name'),
+                        "weight": "regular",
+                        "size": "xxs",
+                        "wrap": True,
+                        "margin": "none",
+                        "contents": []
+                    },
+                    {
+                        "type": "text",
+                        "text": f"{result.get('price', '0')} บาท",
+                        "size": "xxs"
+                    }
+                ],
+                "spacing": "none",
+                "paddingAll": "sm"
+            }
+        }
+        carousel_bubbles.append(bubble)  # Add each bubble dictionary to your list
+
+    # Create the carousel dictionary (moved out of the for loop)
+    carousel = {
+        "type": "carousel",
+        "contents": carousel_bubbles
+    }
+    
+    # Create the flex message dictionary (moved out of the for loop)
+    line_format = {
+        "type": "flex",
+        "altText": "This is a Flex Message",
+        "contents": carousel  # Point to your carousel dictionary
+    } 
+    
+    data = {
+        "line_payload": [line_format],  # Wrap your flex message dictionary in a list
+        "facebook_payload": []
+    }
+    
+    data = json.dumps(data)
+    res = Response(data, mimetype='application/json')
+    res.headers.add("Response-Type", "object")
+    return res
 
 @app.route('/instruments', methods=['GET'])
 def fetch_all_instruments():
-    result = mongo.db.instruments.find_one()
-
-
-    flextemplate = {
-      "type": "bubble",
-      "size": "nano",
-      "hero": {
-        "type": "image",
-        "url": result.get('image', 'default_image_url'),  # provide a default image url if 'image' key is not found
-        "size": "full",
-        "aspectMode": "cover",
-        "aspectRatio": "320:213",
-        "action": {
-          "type": "message",
-          "label": "action",
-          "text": result.get('name', 'No name')
+    results = list(mongo.db.instruments.find().limit(5))
+    carousel_bubbles = []  # This list will hold your bubble dictionaries
+    for result in results:
+        bubble = {
+            "type": "bubble",
+            "size": "giga",
+            "hero": {
+                "type": "image",
+                "url": result.get('image', 'default_image_url'),
+                "size": "full",
+                "aspectMode": "cover",
+                "aspectRatio": "320:213",
+                "action": {
+                    "type": "message",
+                    "label": "action",
+                    "text": result.get('name', 'No name')
+                }
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": result.get('name', 'No name'),
+                        "weight": "regular",
+                        "size": "xxs",
+                        "wrap": True,
+                        "margin": "none",
+                        "contents": []
+                    },
+                    {
+                        "type": "text",
+                        "text": f"{result.get('price', '0')} บาท",
+                        "size": "xxs"
+                    }
+                ],
+                "spacing": "none",
+                "paddingAll": "sm"
+            }
         }
-      },
-      "body": {
-        "type": "box",
-        "layout": "vertical",
-        "contents": [
-          {
-            "type": "text",
-            "text": result.get('name', 'No name'),
-            "weight": "regular",
-            "size": "xxs",
-            "wrap": True,
-            "margin": "none",
-            "contents": []
-          },
-          {
-            "type": "text",
-            "text": f"{result.get('price', '0')} บาท",
-            "size": "xxs"
-          }
-        ],
-        "spacing": "none",
-        "paddingAll": "sm"
-      }
+        carousel_bubbles.append(bubble)  # Add each bubble dictionary to your list
+    
+    # Create the carousel dictionary
+    carousel = {
+        "type": "carousel",
+        "contents": carousel_bubbles
     }
-    return jsonify({"res":flextemplate})
+    
+    # Create the flex message dictionary
+    line_format = {
+        "type": "flex",
+        "altText": "This is a Flex Message",
+        "contents": carousel  # Point to your carousel dictionary
+    }
+    
+    data = {
+        "line_payload": [line_format],  # Wrap your flex message dictionary in a list
+        "facebook_payload": []
+    }
+    
+    data = json.dumps(data)
+    res = Response(data, mimetype='application/json')
+    res.headers.add("Response-Type", "object")
+    return res
+
     
 
 @app.route('/instruments/<usefor>', methods=['GET'])
 def fetch_instruments_by_use(usefor):
     results = list(mongo.db.instruments.find({"usefor": usefor}))
-    return jsonify(results)
+    carousel_bubbles = []  # This list will hold your bubble dictionaries
+    for result in results:
+        bubble = {
+            "type": "bubble",
+            "size": "giga",
+            "hero": {
+                "type": "image",
+                "url": result.get('image', 'default_image_url'),
+                "size": "full",
+                "aspectMode": "cover",
+                "aspectRatio": "320:213",
+                "action": {
+                    "type": "message",
+                    "label": "action",
+                    "text": result.get('name', 'No name')
+                }
+            },
+            "body": {
+                "type": "box",
+                "layout": "vertical",
+                "contents": [
+                    {
+                        "type": "text",
+                        "text": result.get('name', 'No name'),
+                        "weight": "regular",
+                        "size": "xxs",
+                        "wrap": True,
+                        "margin": "none",
+                        "contents": []
+                    },
+                    {
+                        "type": "text",
+                        "text": f"{result.get('price', '0')} บาท",
+                        "size": "xxs"
+                    }
+                ],
+                "spacing": "none",
+                "paddingAll": "sm"
+            }
+        }
+        carousel_bubbles.append(bubble)  # Add each bubble dictionary to your list
+
+    # Create the carousel dictionary (moved out of the for loop)
+    carousel = {
+        "type": "carousel",
+        "contents": carousel_bubbles
+    }
+    
+    # Create the flex message dictionary (moved out of the for loop)
+    line_format = {
+        "type": "flex",
+        "altText": "This is a Flex Message",
+        "contents": carousel  # Point to your carousel dictionary
+    } 
+    
+    data = {
+        "line_payload": [line_format],  # Wrap your flex message dictionary in a list
+        "facebook_payload": []
+    }
+    
+    data = json.dumps(data)
+    res = Response(data, mimetype='application/json')
+    res.headers.add("Response-Type", "object")
+    return res
 
 
 if __name__ == '__main__':
